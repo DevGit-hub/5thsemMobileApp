@@ -8,56 +8,71 @@ class BannerToExplore extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 170,
+      height: 180, // Set a fixed height for the banner
+      // 1. ADD DECORATION FOR IMAGE
       decoration: BoxDecoration(
-        color: kBannerColor,
-        borderRadius: BorderRadius.circular(15),
-        // image: const DecorationImage(
-        //   image: AssetImage("assets/images/banner_image.png"),
-        //   fit: BoxFit.cover,
-        //   alignment: Alignment.centerRight,
-        // ),
+        borderRadius: BorderRadius.circular(20),
+        // This loads your image as the background
+        image: DecorationImage(
+          image: const AssetImage('assets/images/homeimage.jpg'),
+          fit: BoxFit.cover,
+          // Optional: Adds a dark layer so white text pops out
+          colorFilter: ColorFilter.mode(
+            Colors.black.withOpacity(0.3),
+            BlendMode.darken,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-     child: Stack(children: [
-      Positioned(
-        top: 32,
-        left: 20,
-
+      // 2. KEEP YOUR TEXT INSIDE
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-        const Text("Cook the best \nrecipes at home", style: TextStyle(
-          height: 1.1,
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // --- YOUR TEXT STAYS HERE ---
+            // I changed color to white for better contrast against image
+            const Text(
+              "Cook the best\nrecipes at home",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 15),
+            // Example Button (You can keep your existing one if different)
+            InkWell(
+              onTap: () {
+                // Add explore action here
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: kprimaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  "Explore Now",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            // ---------------------------
+          ],
         ),
-        ),
-        SizedBox(height: 10),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 33,
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0),
-          onPressed: (){}, child: Text("Explore",
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          color: Colors.black
-          ),
-          ),
-          )
-      ],
       ),
-      ),
-      Positioned(
-          top: 0,
-          bottom: 0,
-          right: -20,
-          child: Image.network("https://pngimg.com/d/chef_PNG190.png",
-          ),
-          ),
-     ],),
     );
   }
 }

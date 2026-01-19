@@ -5,7 +5,7 @@ import 'package:recipe_app/Utils/constants.dart';
 import 'package:recipe_app/Widget/banner.dart';
 import 'package:recipe_app/Widget/food_items_display.dart';
 import 'package:recipe_app/Widget/my_icon_button.dart';
-import 'package:recipe_app/models/view_all_screen.dart'; // Ensure this file exists
+import 'package:recipe_app/models/view_all_screen.dart'; // <--- IMPORT THIS
 
 class MyAppHomeScreen extends StatefulWidget {
   const MyAppHomeScreen({super.key});
@@ -17,22 +17,18 @@ class MyAppHomeScreen extends StatefulWidget {
 class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
   String category = "All";
 
-  // Reference to categories collection
   final CollectionReference categoriesItems =
   FirebaseFirestore.instance.collection('App-Category');
 
-  // Query for specific category
-  Query get filteredRecipes => FirebaseFirestore.instance
+  Query get fileteredRecipes => FirebaseFirestore.instance
       .collection("Complete-Flutter-App")
       .where('category', isEqualTo: category);
 
-  // Query for all recipes
   Query get allRecipes =>
       FirebaseFirestore.instance.collection("Complete-Flutter-App");
 
-  // Dynamic query based on selection
   Query get selectedRecipes =>
-      category == "All" ? allRecipes : filteredRecipes;
+      category == "All" ? allRecipes : fileteredRecipes;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +46,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                   children: [
                     headerParts(),
                     mySearchBar(),
-                    // Banner
                     const BannerToExplore(),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
@@ -62,10 +57,8 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                         ),
                       ),
                     ),
-                    // Categories Selector (Horizontal Scroll)
                     selectedCategory(),
                     const SizedBox(height: 10),
-                    // "Quick & Easy" + "View All" Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -79,12 +72,12 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                         ),
                         TextButton(
                           onPressed: () {
-                            // Navigate to ViewAllScreen with the current category
+                            // <--- NAVIGATE TO VIEW ALL SCREEN
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ViewAllScreen(
-                                  selectedCategory: category,
+                                  selectedCategory: category, // Pass the current category
                                 ),
                               ),
                             );
@@ -102,7 +95,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                   ],
                 ),
               ),
-              // Recipes List (Horizontal Scroll)
               StreamBuilder(
                 stream: selectedRecipes.snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -112,7 +104,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(top: 5, left: 15),
                       child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal, // Enables horizontal scrolling
+                        scrollDirection: Axis.horizontal,
                         child: Row(
                           children: recipes
                               .map((e) => FoodItemsDisplay(documentSnapshot: e))
@@ -121,7 +113,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                       ),
                     );
                   }
-                  // Show loading spinner while fetching
                   return const Center(child: CircularProgressIndicator());
                 },
               )
@@ -132,28 +123,28 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     );
   }
 
-  // Categories Widget
+  // ... (Keep the rest of your methods: selectedCategory, mySearchBar, headerParts exactly as they were) ...
   StreamBuilder<QuerySnapshot<Object?>> selectedCategory() {
     return StreamBuilder(
       stream: categoriesItems.snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
-        if (streamSnapshot.hasData) {
+      builder: (context, AsyncSnapshot<QuerySnapshot> steamSnapshot) {
+        if (steamSnapshot.hasData) {
           return SingleChildScrollView(
-            scrollDirection: Axis.horizontal, // Enables horizontal scrolling
+            scrollDirection: Axis.horizontal,
             child: Row(
               children: List.generate(
-                streamSnapshot.data!.docs.length,
+                steamSnapshot.data!.docs.length,
                     (index) => GestureDetector(
                   onTap: () {
                     setState(() {
-                      // Updates the selected category
-                      category = streamSnapshot.data!.docs[index]["name"];
+                      category = steamSnapshot.data!.docs[index]["name"];
                     });
                   },
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
-                      color: category == streamSnapshot.data!.docs[index]['name']
+                      color:
+                      category == steamSnapshot.data!.docs[index]['name']
                           ? kprimaryColor
                           : Colors.white,
                     ),
@@ -161,10 +152,10 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                         horizontal: 20, vertical: 10),
                     margin: const EdgeInsets.only(right: 20),
                     child: Text(
-                      streamSnapshot.data!.docs[index]['name'],
+                      steamSnapshot.data!.docs[index]['name'],
                       style: TextStyle(
                         color: category ==
-                            streamSnapshot.data!.docs[index]['name']
+                            steamSnapshot.data!.docs[index]['name']
                             ? Colors.white
                             : Colors.grey.shade600,
                         fontWeight: FontWeight.w600,
@@ -181,7 +172,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     );
   }
 
-  // Search Bar Widget
   Padding mySearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 22),
@@ -206,7 +196,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     );
   }
 
-  // Header Widget
   Row headerParts() {
     return Row(
       children: [
