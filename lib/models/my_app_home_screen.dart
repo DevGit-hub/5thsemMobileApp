@@ -85,7 +85,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                           child: const Text(
                             "View all",
                             style: TextStyle(
-                              color: kBannerColor,
+                              color: Color.fromARGB(255, 29, 113, 91),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -145,7 +145,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                       borderRadius: BorderRadius.circular(25),
                       color:
                       category == steamSnapshot.data!.docs[index]['name']
-                          ? kprimaryColor
+                          ? const Color.fromARGB(255, 56, 110, 131)
                           : Colors.white,
                     ),
                     padding: const EdgeInsets.symmetric(
@@ -157,7 +157,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                         color: category ==
                             steamSnapshot.data!.docs[index]['name']
                             ? Colors.white
-                            : Colors.grey.shade600,
+                            : const Color.fromARGB(255, 41, 40, 40),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -182,7 +182,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
           fillColor: Colors.white,
           border: InputBorder.none,
           hintText: "Search any recipes",
-          hintStyle: const TextStyle(color: Colors.grey),
+          hintStyle: const TextStyle(color: Color.fromARGB(255, 76, 78, 68)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,

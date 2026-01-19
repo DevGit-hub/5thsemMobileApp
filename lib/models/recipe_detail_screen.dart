@@ -42,7 +42,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void toggleFavorite() async {
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please log in to save favorites")),
+        SnackBar(
+          content: const Text("Please log in to save favorites"),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
       return;
     }
@@ -56,9 +61,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         .doc(widget.documentSnapshot.id);
 
     if (isFavorite) {
-      // 🚨 FIX: Save 'ingredientsname', 'ingredientsamount', and 'Steps'
       Map<String, dynamic> data =
-      widget.documentSnapshot.data() as Map<String, dynamic>;
+          widget.documentSnapshot.data() as Map<String, dynamic>;
 
       await ref.set({
         'image': data['image'] ?? '',
@@ -67,7 +71,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         'time': data['time'] ?? 0,
         'rating': data['rating'] ?? 0.0,
         'reviews': data['reviews'] ?? 0,
-        // Save your specific fields
         'ingredientsname': data['ingredientsname'] ?? [],
         'ingredientsamount': data['ingredientsamount'] ?? [],
         'Steps': data['Steps'] ?? '',
@@ -79,9 +82,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ----------------------------------------------------------------
-    // 1. EXTRACT DATA (Matching your Firestore Field Names)
-    // ----------------------------------------------------------------
     final Map<String, dynamic> data =
         widget.documentSnapshot.data() as Map<String, dynamic>? ?? {};
 
@@ -92,210 +92,485 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     String rating = (data['rating'] ?? "4.5").toString();
     String reviews = (data['reviews'] ?? "10").toString();
 
-    // 2. Handle Ingredients Arrays
     List<dynamic> ingNames = data['ingredientsname'] ?? [];
     List<dynamic> ingAmounts = data['ingredientsamount'] ?? [];
 
-    // 3. Handle Steps (Could be a String or a List in DB, handling both)
     List<String> stepsList = [];
     if (data['Steps'] is String) {
-      // If it's one long string, split by new lines
       stepsList = (data['Steps'] as String).split('\n');
     } else if (data['Steps'] is List) {
       stepsList = List<String>.from(data['Steps']);
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // --- Header Image ---
-            Stack(
-              children: [
-                Hero(
-                  tag: image,
-                  child: Container(
-                    height: MediaQuery.of(context).size.height / 2.1,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: image.isNotEmpty
-                            ? NetworkImage(image)
-                            : const NetworkImage(
-                            "https://via.placeholder.com/300"), // Fallback
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 40,
-                  left: 10,
-                  child: MyIconButton(
-                    icon: Icons.arrow_back_ios_new,
-                    pressed: () => Navigator.pop(context),
-                  ),
-                ),
-                Positioned(
-                  top: 40,
-                  right: 10,
-                  child: MyIconButton(
-                    icon: isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                    pressed: toggleFavorite,
-                  ),
-                )
-              ],
-            ),
-
-            // --- Details Content ---
-            Center(
+      backgroundColor: Colors.grey.shade50,
+      body: CustomScrollView(
+        slivers: [
+          // --- MODERN APP BAR WITH IMAGE ---
+          SliverAppBar(
+            expandedHeight: 350,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
               child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  color: Colors.black87,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                      color: isFavorite ? Colors.red : Colors.black87,
+                      size: 24,
+                    ),
+                    onPressed: toggleFavorite,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Hero(
+                tag: image,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: image.isNotEmpty
+                          ? NetworkImage(image)
+                          : const NetworkImage("https://via.placeholder.com/300"),
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.3),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                  ),
+                ),
+              ),
+            ),
+          ),
 
-                    // Stats Row
-                    Row(
-                      children: [
-                        const Icon(Iconsax.flash_1,
-                            color: Colors.grey, size: 20),
-                        Text(" $cal Cal",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey)),
-                        const Text(" . ",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: Colors.grey)),
-                        const Icon(Iconsax.clock, color: Colors.grey, size: 20),
-                        Text(" $time Min",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey)),
+          // --- CONTENT ---
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+              ),
+              child: Column(
+                children: [
+                  // --- RECIPE HEADER CARD ---
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    // Rating Row
-                    Row(
-                      children: [
-                        const Icon(Iconsax.star1,
-                            color: Colors.amber, size: 20),
-                        Text(" $rating",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15)),
-                        Text(" ($reviews Reviews)",
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 13)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // --- INGREDIENTS SECTION ---
-                    const Text(
-                      "Ingredients",
-                      style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    ingNames.isNotEmpty
-                        ? ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: ingNames.length,
-                      itemBuilder: (context, index) {
-                        // Safely get amount if it exists
-                        String amount = index < ingAmounts.length
-                            ? ingAmounts[index].toString()
-                            : "";
-                        String name = ingNames[index].toString();
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.circle,
-                                  size: 8, color: Colors.grey),
-                              const SizedBox(width: 10),
-                              Text(
-                                "$amount $name", // Combines "1kg" + "Chicken"
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.black87),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    )
-                        : const Text("No ingredients listed.",
-                        style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 20),
-
-                    // --- STEPS SECTION ---
-                    const Text(
-                      "Steps",
-                      style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    stepsList.isNotEmpty
-                        ? Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children:
-                      List.generate(stepsList.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                      children: [
+                        // Title
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+
+                        // Stats Row with Cards
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatCard(
+                                icon: Iconsax.flash_1,
+                                value: cal,
+                                label: "Cal",
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildStatCard(
+                                icon: Iconsax.clock,
+                                value: time,
+                                label: "Min",
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 15),
+
+                        // Rating Card
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.shade200,
+                              width: 1,
+                            ),
+                          ),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("${index + 1}. ",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.red)), // Step Number
-                              Expanded(
-                                child: Text(
-                                  stepsList[index].trim(),
-                                  style: const TextStyle(
-                                      fontSize: 15,
-                                      height: 1.5,
-                                      color: Colors.grey),
+                              const Icon(Iconsax.star5,
+                                  color: Colors.amber, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                rating,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                "($reviews Reviews)",
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }),
-                    )
-                        : const Text("No steps listed.",
-                        style: TextStyle(color: Colors.grey)),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                    const SizedBox(height: 50),
-                  ],
-                ),
+                  // --- INGREDIENTS SECTION ---
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Iconsax.note,
+                                color: Colors.green.shade600,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              "Ingredients",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        ingNames.isNotEmpty
+                            ? Column(
+                                children: List.generate(ingNames.length, (index) {
+                                  String amount = index < ingAmounts.length
+                                      ? ingAmounts[index].toString()
+                                      : "";
+                                  String ingName = ingNames[index].toString();
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade400,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            "$amount $ingName",
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black87,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  "No ingredients listed.",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+
+                  // --- STEPS SECTION ---
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Iconsax.clipboard_text,
+                                color: Colors.purple.shade600,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              "Steps",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        stepsList.isNotEmpty
+                            ? Column(
+                                children: List.generate(stepsList.length, (index) {
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.red.shade400,
+                                                Colors.red.shade600,
+                                              ],
+                                            ),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.red.withOpacity(0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              "${index + 1}",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 15),
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade50,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.grey.shade200,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              stepsList[index].trim(),
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                height: 1.6,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  "No steps listed.",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Stat Cards
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
         ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
