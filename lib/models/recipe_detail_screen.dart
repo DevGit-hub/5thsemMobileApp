@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:recipe_app/Utils/constants.dart';
+import 'package:recipe_app/Widget/my_icon_button.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final DocumentSnapshot<Object?> documentSnapshot;
@@ -22,7 +22,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     checkFavoriteStatus();
   }
 
-  // --- FAVORITE LOGIC (Matches your Home Screen) ---
   void checkFavoriteStatus() async {
     if (currentUser == null) return;
     try {
@@ -36,7 +35,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         setState(() => isFavorite = doc.exists);
       }
     } catch (e) {
-      debugPrint("Error checking favorite: $e");
+      // Handle error
     }
   }
 
@@ -48,7 +47,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       return;
     }
 
-    // Update UI immediately
     setState(() => isFavorite = !isFavorite);
 
     final ref = FirebaseFirestore.instance
@@ -58,16 +56,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         .doc(widget.documentSnapshot.id);
 
     if (isFavorite) {
-      // Save all important data so it works offline in Favorites
-      Map<String, dynamic> originalData =
+      // 🚨 FIX: Save 'ingredientsname', 'ingredientsamount', and 'Steps'
+      Map<String, dynamic> data =
       widget.documentSnapshot.data() as Map<String, dynamic>;
 
       await ref.set({
-        'image': originalData['image'] ?? '',
-        'name': originalData['name'] ?? 'Unknown',
-        'cal': originalData['cal'] ?? 0,
-        'time': originalData['time'] ?? 0,
-        // Add more fields if you want them in the favorite list
+        'image': data['image'] ?? '',
+        'name': data['name'] ?? 'Unknown',
+        'cal': data['cal'] ?? 0,
+        'time': data['time'] ?? 0,
+        'rating': data['rating'] ?? 0.0,
+        'reviews': data['reviews'] ?? 0,
+        // Save your specific fields
+        'ingredientsname': data['ingredientsname'] ?? [],
+        'ingredientsamount': data['ingredientsamount'] ?? [],
+        'Steps': data['Steps'] ?? '',
       });
     } else {
       await ref.delete();
@@ -76,7 +79,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🛡️ CRASH PROOF DATA EXTRACTION
+    // ----------------------------------------------------------------
+    // 1. EXTRACT DATA (Matching your Firestore Field Names)
+    // ----------------------------------------------------------------
     final Map<String, dynamic> data =
         widget.documentSnapshot.data() as Map<String, dynamic>? ?? {};
 
@@ -85,179 +90,212 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     String cal = (data['cal'] ?? 0).toString();
     String time = (data['time'] ?? 0).toString();
     String rating = (data['rating'] ?? "4.5").toString();
-    String reviews = (data['reviews'] ?? "120").toString();
-    String description = data['description'] ??
-        "No description provided for this recipe. Enjoy cooking!";
+    String reviews = (data['reviews'] ?? "10").toString();
 
-    // Handle Ingredients: supports both List and String formats
-    List<String> ingredients = [];
-    if (data['ingredients'] is List) {
-      ingredients = List<String>.from(data['ingredients']);
-    } else if (data['ingredients'] is String) {
-      // If it's a single string, split by newlines or commas
-      ingredients = (data['ingredients'] as String).split(RegExp(r'[\n,]'));
+    // 2. Handle Ingredients Arrays
+    List<dynamic> ingNames = data['ingredientsname'] ?? [];
+    List<dynamic> ingAmounts = data['ingredientsamount'] ?? [];
+
+    // 3. Handle Steps (Could be a String or a List in DB, handling both)
+    List<String> stepsList = [];
+    if (data['Steps'] is String) {
+      // If it's one long string, split by new lines
+      stepsList = (data['Steps'] as String).split('\n');
+    } else if (data['Steps'] is List) {
+      stepsList = List<String>.from(data['Steps']);
     }
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // 1. SLIVER APP BAR (Scrolling Image Header)
-          SliverAppBar(
-            expandedHeight: 300,
-            backgroundColor: Colors.white,
-            pinned: true,
-            leading: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                    color: isFavorite ? Colors.red : Colors.black,
-                  ),
-                  onPressed: toggleFavorite,
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: image,
-                child: image.isNotEmpty
-                    ? Image.network(image, fit: BoxFit.cover)
-                    : Container(color: Colors.grey.shade200),
-              ),
-            ),
-          ),
-
-          // 2. RECIPE CONTENT
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // --- Header Image ---
+            Stack(
+              children: [
+                Hero(
+                  tag: image,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height / 2.1,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: image.isNotEmpty
+                            ? NetworkImage(image)
+                            : const NetworkImage(
+                            "https://via.placeholder.com/300"), // Fallback
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 15),
-
-                  // Stats Row (Time, Cal, Rating)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildStatBadge(Iconsax.clock, "$time mins"),
-                      _buildStatBadge(Iconsax.flash_1, "$cal Cal"),
-                      _buildStatBadge(Iconsax.star1, "$rating ($reviews reviews)"),
-                    ],
+                ),
+                Positioned(
+                  top: 40,
+                  left: 10,
+                  child: MyIconButton(
+                    icon: Icons.arrow_back_ios_new,
+                    pressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(height: 25),
-
-                  // Ingredients Section
-                  const Text(
-                    "Ingredients",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Positioned(
+                  top: 40,
+                  right: 10,
+                  child: MyIconButton(
+                    icon: isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                    pressed: toggleFavorite,
                   ),
-                  const SizedBox(height: 15),
-                  ingredients.isNotEmpty
-                      ? ListView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: ingredients.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.circle,
-                                size: 8, color: kprimaryColor),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                ingredients[index].trim(),
+                )
+              ],
+            ),
+
+            // --- Details Content ---
+            Center(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stats Row
+                    Row(
+                      children: [
+                        const Icon(Iconsax.flash_1,
+                            color: Colors.grey, size: 20),
+                        Text(" $cal Cal",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
+                        const Text(" . ",
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.grey)),
+                        const Icon(Iconsax.clock, color: Colors.grey, size: 20),
+                        Text(" $time Min",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Rating Row
+                    Row(
+                      children: [
+                        const Icon(Iconsax.star1,
+                            color: Colors.amber, size: 20),
+                        Text(" $rating",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text(" ($reviews Reviews)",
+                            style: const TextStyle(
+                                color: Colors.grey, fontSize: 13)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // --- INGREDIENTS SECTION ---
+                    const Text(
+                      "Ingredients",
+                      style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    ingNames.isNotEmpty
+                        ? ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: ingNames.length,
+                      itemBuilder: (context, index) {
+                        // Safely get amount if it exists
+                        String amount = index < ingAmounts.length
+                            ? ingAmounts[index].toString()
+                            : "";
+                        String name = ingNames[index].toString();
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.circle,
+                                  size: 8, color: Colors.grey),
+                              const SizedBox(width: 10),
+                              Text(
+                                "$amount $name", // Combines "1kg" + "Chicken"
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black87,
+                                    fontSize: 16, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    )
+                        : const Text("No ingredients listed.",
+                        style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 20),
+
+                    // --- STEPS SECTION ---
+                    const Text(
+                      "Steps",
+                      style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    stepsList.isNotEmpty
+                        ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:
+                      List.generate(stepsList.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("${index + 1}. ",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.red)), // Step Number
+                              Expanded(
+                                child: Text(
+                                  stepsList[index].trim(),
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      height: 1.5,
+                                      color: Colors.grey),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  )
-                      : const Text(
-                    "No ingredients listed.",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                            ],
+                          ),
+                        );
+                      }),
+                    )
+                        : const Text("No steps listed.",
+                        style: TextStyle(color: Colors.grey)),
 
-                  const SizedBox(height: 25),
-
-                  // Description / Instructions
-                  const Text(
-                    "Instructions",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.6,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-
-                  // Extra space at bottom
-                  const SizedBox(height: 50),
-                ],
+                    const SizedBox(height: 50),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper widget for the Stats Row
-  Widget _buildStatBadge(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: kprimaryColor),
-          const SizedBox(width: 5),
-          Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
