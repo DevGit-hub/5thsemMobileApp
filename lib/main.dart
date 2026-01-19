@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'models/app_main_screen.dart';
-
-
+import 'package:recipe_app/auth/login_screen.dart'; // Import Login Screen
+import 'package:recipe_app/models/app_main_screen.dart'; // Import Main Screen
+import 'package:recipe_app/services/auth_service.dart'; // Import Auth Service
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,66 +17,30 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false, // Removes the 'Debug' banner
+      title: 'Recipe App',
       theme: ThemeData(
-       
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const AppMainScreen(),
-    );
-  }
-}
+      // StreamBuilder listens to the user's login state live
+      home: StreamBuilder(
+        stream: AuthService().authStateChanges,
+        builder: (context, snapshot) {
+          // 1. Waiting for Firebase to check connection
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+          // 2. User is Logged In -> Go to Home Screen
+          if (snapshot.hasData) {
+            return const AppMainScreen();
+          }
 
-  
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-     
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    
-    return Scaffold(
-      appBar: AppBar(
-        
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-       
-        title: Text(widget.title),
+          // 3. User is Logged Out -> Go to Login Screen
+          return const LoginScreen();
+        },
       ),
-      body: Center(
-        
-        child: Column(
-          
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
